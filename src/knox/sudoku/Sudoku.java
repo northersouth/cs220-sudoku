@@ -1,9 +1,13 @@
 package knox.sudoku;
+import java.awt.Color;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Scanner;
+
+import javax.swing.JOptionPane;
 
 /**
  * 
@@ -18,27 +22,116 @@ import java.util.Scanner;
  *
  */
 public class Sudoku {
-	int[][] board = new int[9][9];
+	int[][] playBoard = new int[9][9];
+	int[][] baseBoard = new int[9][9];
 	
 	public int get(int row, int col) {
 		// TODO: check for out of bounds
-		return board[row][col];
+		return playBoard[row][col];
+	}
+	
+	public int getBase(int row, int col) {
+		return baseBoard[row][col];
 	}
 	
 	public void set(int row, int col, int val) {
-		// TODO: make sure val is legal
-		board[row][col] = val;
+		if(this.isLegal(row, col, val)) {
+			playBoard[row][col] = val;
+		} else {
+			JOptionPane.showMessageDialog(null, "A " + val + " can't go here.", "Illegal Value", JOptionPane.ERROR_MESSAGE);
+		}
 	}
 	
 	public boolean isLegal(int row, int col, int val) {
-		// TODO: check if it's legal to put val at row, col
+		//zeros are always legal to clear squares
+		if(val == 0) {
+			return true;
+		}
+		
+		for(int i = 0; i < 9; i++) {
+			//row check
+			if(this.get(row, i) == val) {
+				return false;
+			}
+			//col check
+			if(this.get(i, col) == val) {
+				return false;
+			}
+		}
+		//get square properly cornered
+		int sqRow, sqCol;
+		
+		if(0 <= row && row <= 2) {
+			sqRow = 0;
+		} else if (3 <= row && row <= 5) {
+			sqRow = 3;
+		} else {
+			sqRow = 6;
+		}
+	
+		if(0 <= col && col <= 2) {
+			sqCol = 0;
+		} else if (3 <= col && col <= 5) {
+			sqCol = 3;
+		} else {
+			sqCol = 6;
+		}
+		//square check
+		for(int i = sqRow; i < sqRow + 3; i++) {
+			for(int j = sqCol; j < sqCol + 3; j++) {
+				if(this.get(i, j) == val) {
+					return false;
+				}
+			}
+		}
+		
 		return true;
 	}
 	
 	public Collection<Integer> getLegalValues(int row, int col) {
 		// TODO: return only the legal values that can be stored at the given row, col
-		return new LinkedList<>();
+		Collection<Integer> temp = new LinkedList();
+		
+		//if not empty, there aren't any legal values!
+		if(this.get(row, col) != 0) {
+			return temp;
+		}
+		
+		for(int i = 1; i < 10; i++) {
+			if(this.isLegal(row, col, i)) {
+				temp.add(i);
+			}
+		}
+		return temp;
 	}
+	
+	public String legalValuesToString (int row, int col) {
+		Collection<Integer> temp = this.getLegalValues(row, col);
+		
+		String values = "";
+		
+		Iterator goGo = temp.iterator();
+		
+		while(goGo.hasNext()) {
+			values = values +  String.valueOf(goGo.next()) + ", ";
+		}
+		
+		return values.substring(0, values.length() - 2);
+	}
+	
+	public Boolean victoryCheck() {
+		//if there's still an empty square, not a victory
+		for(int i = 0; i < 9; i++) {
+			for(int j = 0; j < 9; j++) {
+				if(this.get(i,  j) == 0) {
+					return false;
+				}
+			}
+		}
+		//if all filled, because of the legal checks it must be a win!
+		return true;
+	}
+	
 	
 /**
 
@@ -57,7 +150,8 @@ etc
 			for (int r=0; r<9; r++) {
 				for (int c=0; c<9; c++) {
 					int val = scan.nextInt();
-					board[r][c] = val;
+					baseBoard[r][c] = val;
+					playBoard[r][c] = val;
 				}
 			}
 		} catch (IOException e) {
@@ -117,7 +211,7 @@ etc
 	}
 
 	public boolean isBlank(int row, int col) {
-		return board[row][col] == 0;
+		return baseBoard[row][col] == 0;
 	}
 
 }

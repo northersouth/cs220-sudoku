@@ -13,6 +13,7 @@ import java.awt.event.MouseEvent;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -40,6 +41,8 @@ import javax.swing.WindowConstants;
  */
 public class SudokuGUI extends JFrame {
 	
+	private JFileChooser getFiles = new JFileChooser();
+	
 	private Sudoku sudoku;
     
 	private static final long serialVersionUID = 1L;
@@ -51,7 +54,9 @@ public class SudokuGUI extends JFrame {
     // the current row and column we are potentially putting values into
     private int currentRow = -1;
     private int currentCol = -1;
-
+    
+    // the current guessed number for currentRow and currentCol
+    private int guess = -1;
     
     // figuring out how big to make each button
     // honestly not sure how much detail is needed here with margins
@@ -61,7 +66,6 @@ public class SudokuGUI extends JFrame {
     private int width = DOUBLE_MARGIN_SIZE + squareSize * numCols;    		
     private int height = DOUBLE_MARGIN_SIZE + squareSize * numRows;  
     
-    // for lots of fun, too much fun really, try "Wingdings"
     private static Font FONT = new Font("Verdana", Font.BOLD, 40);
     private static Color FONT_COLOR = Color.BLACK;
     private static Color BACKGROUND_COLOR = Color.GRAY;
@@ -97,6 +101,14 @@ public class SudokuGUI extends JFrame {
 					sudoku.set(row, col, digit);
 				}
 				update();
+			} 
+			if (key == '-'){
+				if(sudoku.getLegalValues(row, col).size() == 0) {
+					JOptionPane.showMessageDialog(null, "There are no numbers that can go here,\nthere must be a mistake somewhere.", "Legal Values", JOptionPane.INFORMATION_MESSAGE);
+
+				} else {
+					JOptionPane.showMessageDialog(null, "The numbers that could go\n in this square are: " + sudoku.legalValuesToString(row, col), "Legal Values", JOptionPane.INFORMATION_MESSAGE);
+				}
 			}
 		}
     }
@@ -126,17 +138,31 @@ public class SudokuGUI extends JFrame {
 				// TODO: figure out some way that users can enter values
 				// A simple way to do this is to take keyboard input
 				// or you can cycle through possible legal values with each click
-				// or pop up a selector with only the legal valuess
+				// or pop up a selector with only the legal values
+				
 				
 			} else {
 				// TODO: error dialog letting the user know that they cannot enter values
 				// where a value has already been placed
-				JOptionPane.showMessageDialog(null, "Can't enter a value here");
 			}
 			
 			update();
 		}
+		
     }
+    
+    public void showHint() {
+    	//check for squares where there's only one value that could go there
+    	for(int i = 0; i < 9; i++) {
+			for(int j = 0; j < 9; j++) {
+				if(sudoku.getLegalValues(i, j).size() == 1) {
+					buttons[i][j].setBackground(Color.PINK);
+					repaint();
+					//return;
+				}
+			}
+		}
+	}
     
     /**
      * Put text into the given JButton
@@ -163,10 +189,15 @@ public class SudokuGUI extends JFrame {
     				// I can't figure out how to change the background color of a grid square, ugh
     				// Maybe I should have used JLabel instead of JButton?
     				buttons[row][col].setBackground(Color.CYAN);
-    				setText(row, col, "_");
-    			} else {
-    				buttons[row][col].setForeground(FONT_COLOR);
-    				buttons[row][col].setBackground(BACKGROUND_COLOR);
+    				if(sudoku.get(row, col) == 0) {
+    					setText(row, col, "_");
+    				} else {
+    					setText(row, col, String.valueOf(sudoku.get(row, col)));
+    				}
+    				
+    			} else if (sudoku.getBase(row, col) == 0){
+    				buttons[row][col].setForeground(Color.BLUE);
+    				buttons[row][col].setBackground(Color.GRAY);
 	    			int val = sudoku.get(row, col);
 	    			if (val == 0) {
 	    				setText(row, col, "");
@@ -175,6 +206,12 @@ public class SudokuGUI extends JFrame {
 	    			}
     			}
     		}
+    		//victory check!
+    		if(sudoku.victoryCheck()) {
+    			JOptionPane.showMessageDialog(null, "Board Complete: You Win!");
+    			System.exit(0);
+    		}
+    		
     	}
     	repaint();
     }
@@ -189,14 +226,11 @@ public class SudokuGUI extends JFrame {
     	JMenu file = new JMenu("File");
         menuBar.add(file);
         
-        // anonymous inner class
-        // basically, immediately create a class that implements actionlistener
-        // and then give it the given actionPerformed method.
         addToMenu(file, "New Game", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 sudoku.load("easy1.txt");
-                update();
+                repaint();
             }
         });
         
@@ -207,11 +241,13 @@ public class SudokuGUI extends JFrame {
             	// HINT: Check the Util.java class for helpful methods
             	// HINT: check out JFileChooser
             	// https://docs.oracle.com/javase/tutorial/uiswing/components/filechooser.html
-            	JOptionPane.showMessageDialog(null,
-            		    "TODO: save the current game to a file!\n"
-            		    + "HINT: Check the Util.java class for helpful methods"
-            		    + "HINT: Check out JFileChooser");
-                update();
+            	getFiles.showSaveDialog(null);
+            	String com = e.getActionCommand();
+            	if (com.equals("save")) {
+            		Util.writeToFile(getFiles.getName(),sudoku.toString());
+            	}
+            	
+                repaint();
             }
         });
         
@@ -222,11 +258,10 @@ public class SudokuGUI extends JFrame {
             	// HINT: Check the Util.java class for helpful methods
             	// HINT: check out JFileChooser
             	// https://docs.oracle.com/javase/tutorial/uiswing/components/filechooser.html
-            	JOptionPane.showMessageDialog(null,
-            		    "TODO: load a saved game from a file\n"
-            		    + "HINT: Check the Util.java class for helpful methods\n"
-            		    + "HINT: Check out JFileChooser");
-                update();
+            	getFiles.showOpenDialog(null);
+            	
+            	
+                repaint();
             }
         });
         
@@ -236,13 +271,30 @@ public class SudokuGUI extends JFrame {
         JMenu help = new JMenu("Help");
         menuBar.add(help);
         
-        addToMenu(help, "Hint", new ActionListener() {
+        addToMenu(help, "Controls", new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				JOptionPane.showMessageDialog(null, "Give the user a hint! Highlight the most constrained square\n" + 
-						"which is the square where the fewest posssible values can go");
+				JOptionPane.showMessageDialog(null, "Click on a square, then type 1-9 to try\n" + 
+													"and fill it in. Type 0 to clear the square.");
 			}
 		});
+        
+        addToMenu(help, "Hint Spots", new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JOptionPane.showMessageDialog(null, "Here's a hint! Only one number\n" + 
+													"can go in the pink squares.");
+				showHint();
+			}
+		});
+        
+        addToMenu(help, "Legal Values", new ActionListener(){
+        	@Override
+			public void actionPerformed(ActionEvent e) {
+				JOptionPane.showMessageDialog(null, "To show all the values that could go\n" + 
+													"in a square, just press ' - '.");
+			}
+        });
         
         this.setJMenuBar(menuBar);
     }
@@ -278,8 +330,40 @@ public class SudokuGUI extends JFrame {
     	for (int r=0; r<buttons.length; r++) {
     		for (int c=0; c<buttons[r].length; c++) {
     			buttons[r][c].addKeyListener(new MyKeyListener(r, c, sudoku));
+    			/*
+    			buttons[r][c].addKeyListener(new KeyAdapter() {
+    				@Override
+    				public void keyTyped(KeyEvent e) {
+    					char key = e.getKeyChar();
+    					System.out.println(key);
+    					if (Character.isDigit(key)) {
+    						System.out.println(key);
+    						if (currentRow > -1 && currentCol > -1) {
+    							guess = Integer.parseInt(key + "");
+    						}
+    					}
+    					
+    				}
+    			});
+    			*/
     		}
     	}
+    	/*
+    	this.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				char key = e.getKeyChar();
+				System.out.println(key);
+				if (Character.isDigit(key)) {
+					System.out.println(key);
+					if (currentRow > -1 && currentCol > -1) {
+						guess = Integer.parseInt(key + "");
+					}
+				}
+				
+			}
+		});
+		*/
     }
     
     public SudokuGUI() {
@@ -310,7 +394,6 @@ public class SudokuGUI extends JFrame {
         		b.setFont(FONT);
         		b.setForeground(FONT_COLOR);
         		b.setBackground(BACKGROUND_COLOR);
-        		b.setOpaque(true);
         		buttons[r][c] = b;
         		// add the button to the canvas
         		// the layout manager (the 9x9 GridLayout from a few lines earlier)
@@ -360,7 +443,19 @@ public class SudokuGUI extends JFrame {
         // close the GUI application when people click the X to close the window
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         
-        update();
+        //set up like update but different to seperate starter numbers and new ones
+        for (int row=0; row<numRows; row++) {
+    		for (int col=0; col<numCols; col++) {
+    			buttons[row][col].setForeground(FONT_COLOR);
+	    		int val = sudoku.get(row, col);
+	    		if (val == 0) {
+	    			setText(row, col, "");
+	    		} else {
+	    			setText(row, col, val+"");
+	    		}
+    		}
+    	}
+    	
         repaint();
     }
     
