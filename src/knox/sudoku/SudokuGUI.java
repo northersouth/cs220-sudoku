@@ -10,6 +10,9 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.Scanner;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -179,6 +182,24 @@ public class SudokuGUI extends JFrame {
      * This is a private helper method that updates the GUI/view
      * to match any changes to the model
      */
+    private void baseCoat() {
+    	//set up like update but different to separate starter numbers and new ones
+        for (int row=0; row<numRows; row++) {
+    		for (int col=0; col<numCols; col++) {
+    			buttons[row][col].setForeground(FONT_COLOR);
+    			buttons[row][col].setBackground(Color.GRAY);
+	    		int val = sudoku.get(row, col);
+	    		if (val == 0) {
+	    			setText(row, col, "");
+	    		} else {
+	    			setText(row, col, val+"");
+	    		}
+    		}
+    	}
+    	
+        repaint();
+    }
+    
     private void update() {
     	for (int row=0; row<numRows; row++) {
     		for (int col=0; col<numCols; col++) {
@@ -247,7 +268,7 @@ public class SudokuGUI extends JFrame {
             		Util.writeToFile(getFiles.getName(),sudoku.toString());
             	}
             	
-                repaint();
+                update();
             }
         });
         
@@ -258,10 +279,13 @@ public class SudokuGUI extends JFrame {
             	// HINT: Check the Util.java class for helpful methods
             	// HINT: check out JFileChooser
             	// https://docs.oracle.com/javase/tutorial/uiswing/components/filechooser.html
+            	
             	getFiles.showOpenDialog(null);
             	
+            	sudoku.load(getFiles.getSelectedFile().getName());
             	
-                repaint();
+                baseCoat();
+                
             }
         });
         
@@ -443,20 +467,8 @@ public class SudokuGUI extends JFrame {
         // close the GUI application when people click the X to close the window
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         
-        //set up like update but different to seperate starter numbers and new ones
-        for (int row=0; row<numRows; row++) {
-    		for (int col=0; col<numCols; col++) {
-    			buttons[row][col].setForeground(FONT_COLOR);
-	    		int val = sudoku.get(row, col);
-	    		if (val == 0) {
-	    			setText(row, col, "");
-	    		} else {
-	    			setText(row, col, val+"");
-	    		}
-    		}
-    	}
-    	
-        repaint();
+        baseCoat();
+        
     }
     
     public static void main(String[] args) {
