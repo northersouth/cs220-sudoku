@@ -213,5 +213,18 @@ etc
 	public boolean isBlank(int row, int col) {
 		return baseBoard[row][col] == 0;
 	}
+	
+	public String boardState() {
+		String theBOARD = "";
+		
+		for (int r=0; r<9; r++) {
+			for (int c=0; c<9; c++) {
+				theBOARD = theBOARD + this.get(r, c) + " ";
+			}
+			theBOARD = theBOARD + "\n";
+		}
+		
+		return theBOARD;
+	}
 
 }

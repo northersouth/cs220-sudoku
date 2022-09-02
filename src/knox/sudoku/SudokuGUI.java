@@ -12,6 +12,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Scanner;
 
 import javax.swing.BorderFactory;
@@ -262,10 +264,20 @@ public class SudokuGUI extends JFrame {
             	// HINT: Check the Util.java class for helpful methods
             	// HINT: check out JFileChooser
             	// https://docs.oracle.com/javase/tutorial/uiswing/components/filechooser.html
-            	getFiles.showSaveDialog(null);
-            	String com = e.getActionCommand();
-            	if (com.equals("save")) {
-            		Util.writeToFile(getFiles.getName(),sudoku.toString());
+            	
+            	int returnVal = getFiles.showSaveDialog(getOwner());
+            	if(returnVal == JFileChooser.APPROVE_OPTION) {
+
+					try {
+						PrintStream out = new PrintStream(new File(getFiles.getSelectedFile().getName()));
+						out.print(sudoku.boardState());
+						out.flush();
+						out.close();
+					} catch (Exception f) {
+						// lazy way to convert all static (checked) exceptions into 
+						throw new RuntimeException(f);
+					}
+
             	}
             	
                 update();
@@ -275,16 +287,14 @@ public class SudokuGUI extends JFrame {
         addToMenu(file, "Load", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-            	// TODO: load a saved game from a file
-            	// HINT: Check the Util.java class for helpful methods
-            	// HINT: check out JFileChooser
-            	// https://docs.oracle.com/javase/tutorial/uiswing/components/filechooser.html
             	
-            	getFiles.showOpenDialog(null);
+            	//the returnVal stuff is borrowed from the class document itself
+            	int returnVal = getFiles.showOpenDialog(getOwner());
+            	if(returnVal == JFileChooser.APPROVE_OPTION) {
+            		sudoku.load(getFiles.getSelectedFile().getName());
+                    baseCoat();
+            	}
             	
-            	sudoku.load(getFiles.getSelectedFile().getName());
-            	
-                baseCoat();
                 
             }
         });
